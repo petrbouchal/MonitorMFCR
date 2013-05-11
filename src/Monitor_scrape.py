@@ -9,12 +9,16 @@ import json
 from bs4 import BeautifulSoup
 from datetime import datetime
 
-# SELECT YEARS AND STORAGE TYPES
+# SELECT YEARS, SCOPE OF DATA AND ORGS, AND STORAGE TYPES
 
-years = ['2010', '2011', '2012']
+years = ['2012']
+#years = ['2010', '2011', '2012']
+
 writecsv = 1
+
 collectbudget = 0
 collectvysledovky = 1
+
 includeoss = 1
 includeprispevkovky = 0
 
@@ -24,10 +28,10 @@ now = datetime.now()
 today = datetime.today()
 
 # build date and time strings
-datestring = datetime.strftime(today, '%Y-%m-%d')
-datetimestring = datetime.strftime(now, '%Y-%m-%d %H:%M:%S')
-filedatestring = datetime.strftime(now, '%Y%m%d_%H%M')
-filedatestringlong = datetime.strftime(now, '%Y%m%d_%H%M%S')
+datestring = datetime.strftime(today, ' % Y -% m -% d')
+datetimestring = datetime.strftime(now, ' % Y -% m -% d % H: % M: % S')
+filedatestring = datetime.strftime(now, ' % Y % m % d_ % H % M')
+filedatestringlong = datetime.strftime(now, ' % Y % m % d_ % H % M % S')
 
 
 urlbase = 'http://monitor.statnipokladna.cz/'
@@ -43,22 +47,22 @@ httpheaders_json = {
                'Host' : 'monitor.statnipokladna.cz',
                'Connection' : 'keep-alive',
                'Cache-Control' : 'max-age=0',
-               'Accept' : 'application/json, text/javascript, */*; q=0.01',
+               'Accept' : 'application/json, text/javascript, */* ; q=0.01',
                'Conent-Type' : 'Content-Type:application/x-www-form-urlencoded; charset=UTF-8',
                'Origin' : 'http://monitor.statnipokladna.cz',
-               'Accept-Encoding' : 'gzip,deflate,sdch',
-               'Accept-Language' : 'cs,en-US;q=0.8,en;q=0.6,de;q=0.4',
+               'Accept-Encoding':'gzip, deflate, sdch',
+               'Accept-Language':'cs, en - US;q=0.8, en;q=0.6, de;q=0.4',
                'X-Requested-With' : 'XMLHttpRequest'
                }
 
 httpheaders_html = {
                'Host': 'monitor.statnipokladna.cz',
                'Connection': 'keep-alive',
-               'Cache-Control': 'max-age=0',
-               'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+               'Cache-Control': 'max-age = 0',
+               'Accept': 'text/html, application/xhtml+xml, application/xml;q=0.9, */* ;q=0.8',
                'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_6_8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/27.0.1453.65 Safari/537.36',
-               'Accept-Encoding': 'gzip,deflate,sdch',
-               'Accept-Language': 'cs,en-US;q=0.8,en;q=0.6,de;q=0.4'
+               'Accept-Encoding': 'gzip, deflate, sdch',
+               'Accept-Language': 'cs, en-US;q=0.8, en;q=0.6, de;q=0.4'
               }
 
 # SET UP CSV
@@ -135,13 +139,13 @@ for orgdict in chapterdicts:
     if includeoss != 1: break
     orgurl = (urlbase + orgdict['year'] + urlmidjson_chapter + orgdict['id'] +
               '?do=loadGovernmentDepartments')
-    #print orgurl
+    print orgurl
     orgreq = urllib2.Request(orgurl, httpdata, httpheaders_json)
     orgpage = urllib2.urlopen(orgreq).read()
     orgpagehtml = json.loads(orgpage)['snippets']['snippet--governmentDepartmentsSnippet']
     orgsoup = BeautifulSoup(orgpagehtml)
     orgtab = orgsoup.find('table', attrs={'id' : 'oss-table'})
-    #print orgurl
+    print orgurl
     #print orgtab
     if orgtab != None:
         orgtab = orgtab.tbody
@@ -184,10 +188,10 @@ for org in orgdicts:
             continue
     datajson = datajson.read()
     data = json.loads(datajson)
-    html = data['snippets']['snippet--outgoingsBudgetByItemsSnippet']
+    html = data['snippets']['snippet - -outgoingsBudgetByItemsSnippet']
     #print(html)
     soup = BeautifulSoup(html)
-    errorpage = soup.find('p', attrs={'class' : 'empty-result'})
+    errorpage = soup.find('p', attrs={'class' : 'empty - result'})
     if errorpage != None:
         print org['id'] + ': No budget data for this organisation ' + 'in ' + org['year']
         availability = "Unavailable"
@@ -199,12 +203,12 @@ for org in orgdicts:
     rows = table.find_all('tr')
     for row in rows:
         #print row
-        rowid = row['data-tt-id']
+        rowid = row['data - tt - id']
         rowname = row.th.contents[0]
         figures = row.find_all('td')
         if rowid != "0":
             level = row['class'][0]
-            parent = row['data-tt-parent-id']
+            parent = row['data - tt - parent - id']
         else:
             level = '0'
             parent = 'None'
@@ -306,8 +310,8 @@ for org in orgdicts:
     # parts of the statement are structurally identical
     for vysltab in vysltabs:
         vysltype = vysltab['type']
-        vyslrows = vysltab['data'].find_all('tr',
-                                            attrs={'tr-class' : 'header'})
+        #print vysltab['data']
+        vyslrows = vysltab['data']
         for row in vyslrows:
             cells = row.find_all('td')
             itemcode = cells[1].contents[0]
@@ -325,4 +329,4 @@ for org in orgdicts:
                            vysltype, itemcode, itemname, synaccount, rownum,
                            beznehlavni, beznehospodarska,
                            minulehlavni, minulehospodarska]
-            if writecsv: writer_vysledovka.writerow(csvrow_vysl)
+            if writecsv == 1: writer_vysledovka.writerow(csvrow_vysl)
