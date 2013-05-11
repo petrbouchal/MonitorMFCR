@@ -28,10 +28,10 @@ now = datetime.now()
 today = datetime.today()
 
 # build date and time strings
-datestring = datetime.strftime(today, ' % Y -% m -% d')
-datetimestring = datetime.strftime(now, ' % Y -% m -% d % H: % M: % S')
-filedatestring = datetime.strftime(now, ' % Y % m % d_ % H % M')
-filedatestringlong = datetime.strftime(now, ' % Y % m % d_ % H % M % S')
+datestring = datetime.strftime(today, '%Y-%m-%d')
+datetimestring = datetime.strftime(now, '%Y-%m-%d%H:% M:%S')
+filedatestring = datetime.strftime(now, '%Y%m%d_%H%M')
+filedatestringlong = datetime.strftime(now, '%Y%m%d_%H%M%S')
 
 
 urlbase = 'http://monitor.statnipokladna.cz/'
@@ -145,7 +145,7 @@ for orgdict in chapterdicts:
     orgpagehtml = json.loads(orgpage)['snippets']['snippet--governmentDepartmentsSnippet']
     orgsoup = BeautifulSoup(orgpagehtml)
     orgtab = orgsoup.find('table', attrs={'id' : 'oss-table'})
-    print orgurl
+    #print orgurl
     #print orgtab
     if orgtab != None:
         orgtab = orgtab.tbody
@@ -314,11 +314,11 @@ for org in orgdicts:
         vyslrows = vysltab['data']
         for row in vyslrows:
             cells = row.find_all('td')
-            itemcode = cells[1].contents[0]
-            itemname = cells[2].contents[0]
-            synaccount = cells[3].contents[0]
-            rownum = cells[4].contents[0]
-            beznehlavni = cells[5].contents[0]
+            itemcode = cells[0].contents[0]
+            itemname = cells[1].contents[0]
+            synaccount = cells[2].contents[0]
+            rownum = cells[3].contents[0]
+            beznehlavni = cells[4].contents[0]
             beznehospodarska = cells[5].contents[0]
             minulehlavni = cells[6].contents[0]
             minulehospodarska = cells[7].contents[0]
