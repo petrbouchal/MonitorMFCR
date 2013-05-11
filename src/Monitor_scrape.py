@@ -13,6 +13,10 @@ from datetime import datetime
 
 years = ['2010', '2011', '2012']
 writecsv = 1
+collectbudget = 0
+collectvysledovky = 1
+includeprispevkovky = 1
+includeoss = 1
 
 # SET UP CONSTANT BITS
 
@@ -63,35 +67,38 @@ if writecsv == 1:
     csvfile = open(csvout_druhove, 'wb')
     writer_druhove = csv.writer(csvfile, doublequote=True)
 
-    csvdictfieldnames_druhove = ['orgyear', 'orgtype', 'orgid', 'orgchapter',
+    csvdictfieldnames_druhove = ['orgyear', 'orgtype', 'orgid', 'orgname',
+                                 'orgchapter',
                                  'orgchaptername', 'zrizovatel',
-                                 'rowid', 'rowname', 'rowlevel', 'rowparent', 'rozpocet',
-                                 'pozmenach', 'skutecnost']
-    writer_druhove.writerow(csvdictfieldnames_druhove)
+                                 'rowid', 'rowname', 'rowlevel', 'rowparent',
+                                 'rozpocet', 'pozmenach', 'skutecnost']
+    if writecsv == 1: writer_druhove.writerow(csvdictfieldnames_druhove)
 
     csvout_vysledovka = "../output/VydajeVysledovka" + '_' + filedatestring + '.csv'
     csvfile = open(csvout_vysledovka, 'wb')
     writer_vysledovka = csv.writer(csvfile, doublequote=True)
 
-    csvdictfieldnames_vysledovka = ['orgyear', 'orgtype', 'orgid',
+    csvdictfieldnames_vysledovka = ['orgyear', 'orgtype', 'orgid', 'orgname',
                                     'orgchapter', 'zrizovatel',
                                     'rowid', 'rowname', 'rowlevel', 'rowparent',
                                     'skutecnostLetos', 'skutecnostLoni']
-    writer_vysledovka.writerow(csvdictfieldnames_vysledovka)
+    if writecsv == 1: writer_vysledovka.writerow(csvdictfieldnames_vysledovka)
 
     csvout_availability = "../output/VydajeAvailability" + '_' + filedatestring + '.csv'
     csvfile = open(csvout_availability, 'wb')
     writer_availability = csv.writer(csvfile, doublequote=True)
 
-    csvdictfieldnames_availability = ['year', 'type', 'id', 'chapter', 'chaptername',
-                               'Druhove', 'availability']
-    writer_availability.writerow(csvdictfieldnames_availability)
+    csvdictfieldnames_availability = ['year', 'type', 'id', 'chapter',
+                                      'chaptername', 'orgname',
+                                      'datatype', 'availability']
+    if writecsv == 1: writer_availability.writerow(csvdictfieldnames_availability)
 
 # CAPTURE ALL CHAPTER NUMBERS FOR EACH YEAR
 
 yrurls = []
 for year in years:
-    urldict = {'year' : year, 'url' : 'http://monitor.statnipokladna.cz/' + year + '/statni-rozpocet/'}
+    urldict = {'year' : year, 'url' : 'http://monitor.statnipokladna.cz/'
+               + year + '/statni-rozpocet/'}
     yrurls.append(urldict)
 
 #print yrurls
@@ -106,20 +113,24 @@ for yrurl in yrurls:
     opts = select.find_all('option')
     for opt in opts:
         chapterdict = {'year' : yrurl['year'], 'id' : opt['value'],
-                       'type' : 'chapter', 'chapter' : opt['value'],
-                       'parentorg' : 'None', 'category' : 'None',
+                       'type' : 'chapter', 'chapternum' : opt['value'],
+                       'parentorgname' : 'None', 'category' : 'None',
                        'orgname' : opt.contents[0], 'chaptername' : opt.contents[0],
-                       'zrizovatel' : 'None'}
-        if len(chapterdict['chapter']) != 0:
+                       'parentorgICO' : 'None'}
+        if len(chapterdict['chapternum']) != 0:
             orgdicts.append(chapterdict)
 
 #for i in orgdicts: print i
+print('Found ' + str(len(orgdicts)) + ' budget chapters over ' +
+      str(len(years)) + ' years.')
 
 # CAPTURE ALL SUBORDINATE ORGS FOR EACH CHAPTER
 print('Getting list of organisations')
 chapterdicts = orgdicts[:]
 for orgdict in chapterdicts:
-    orgurl = urlbase + orgdict['year'] + urlmidjson_chapter + orgdict['id'] + '?do=loadGovernmentDepartments'
+    if includeoss != 1: break
+    orgurl = (urlbase + orgdict['year'] + urlmidjson_chapter + orgdict['id'] +
+              '?do=loadGovernmentDepartments')
     #print orgurl
     orgreq = urllib2.Request(orgurl, httpdata, httpheaders_json)
     orgpage = urllib2.urlopen(orgreq).read()
@@ -138,17 +149,20 @@ for orgdict in chapterdicts:
             orgname = orgcell_name.a.contents
             #print orgICO[0]
             orgICOdict = {'year' : orgdict['year'], 'id' : orgICO[0],
-                          'type' : 'OSS', 'chapternum' : orgdict['chapter'],
+                          'type' : 'OSS', 'chapternum' : orgdict['chapternum'],
                           'parentorgICO' : 'None', 'parentorgname' : 'None',
                           'category' : 'None',
                           'orgname' : orgname[0], 'chaptername' : orgdict['orgname']}
             orgdicts.append(orgICOdict)
             #print(orgICOdict)
 
+print('Found ' + str(len(orgdicts)) + ' budget chapters and orgs over ' +
+      str(len(years)) + ' years.')
 
-# SCRAPE DRUHOVE CLENENI
+# SCRAPE DRUHOVE CLENENI [BUDGET DATA]
 
 for org in orgdicts:
+    if collectbudget != 1: break
     if org['type'] == 'chapter':
         url = urlbase + org['year'] + urlmidjson_chapter + org['id'] + urltailjson_chapter
     elif org['type'] == 'OSS':
@@ -161,7 +175,8 @@ for org in orgdicts:
         try:
             datajson = urllib2.urlopen(req)
         except IOError:
-            print("Error reading URL on " + org['id'] + '. Continuing to next organisation.')
+            print("Error reading URL on " + org['id'] +
+                  '. Continuing to next organisation.')
             continue
     datajson = datajson.read()
     data = json.loads(datajson)
@@ -170,8 +185,11 @@ for org in orgdicts:
     soup = BeautifulSoup(html)
     errorpage = soup.find('p', attrs={'class' : 'empty-result'})
     if errorpage != None:
-        print org['id'] + ": No data for this organisation"
-        org['availability'] = "Unavailable"
+        print org['id'] + ': No budget data for this organisation ' + 'in ' + org['year']
+        availability = "Unavailable"
+        csvrow_availability = [org['year'], org['type'], org['id'], org['chapternum'],
+                               org['chaptername'], org['orgname'], 'Druhove', availability]
+        if writecsv == 1: writer_availability.writerow(csvrow_availability)
         continue
     table = soup.find('tbody')
     rows = table.find_all('tr')
@@ -191,41 +209,29 @@ for org in orgdicts:
         pozmenach = figures[1].contents[0].replace(' ', '')
         skutecnost = figures[2].contents[0].replace(' ', '')
         #print rowname, rozpocet, pozmenach, skutecnost
-        csvrowdict_druhove = {
-                   'year' : org['year'],
-                   'orgtype' : org['type'],
-                   'orgid' : org['id'],
-                   'orgname' : org['orgname'],
-                   'orgchapter' : org['chapter'],
-                   'rowid' : rowid,
-                   'rowname' : rowname,
-                   'rowlevel' : level,
-                   'rowparent' : parent,
-                   'rozpocet' : rozpocet,
-                   'pozmenach' : pozmenach,
-                   'skutecnost' : skutecnost
-                   }
-
-        csvrow_druhove = [org['year'], org['type'], org['id'], org['chapter'],
-                          org['chapternmae'], org['parentorgICO'], org['parentorgname'],
+        csvrow_druhove = [org['year'], org['type'], org['id'], org['orgname'],
+                          org['chapternum'], org['chaptername'], org['parentorgICO'],
+                          org['parentorgname'],
                           rowid, rowname, level, parent, rozpocet, pozmenach, skutecnost]
-        if(writer_druhove.writerow(csvrow_druhove)):
-            print("OK: Line (druhove) written.")
-            org['availability'] = 'Available'
+        if writecsv == 1:  writer_druhove.writerow(csvrow_druhove)
 
-        csvrow_availability = [org['year'], org['type'], org['id'], org['chapter'], org['chaptername'],
-                               'Druhove', org['availability']]
-        writer_availability.writerow(csvrow_availability)
+    availability = 'Available'
+    csvrow_availability = [org['year'], org['type'], org['id'], org['chapternum'],
+                           org['chaptername'], org['orgname'], 'Druhove', availability]
+    if writecsv == 1: writer_availability.writerow(csvrow_availability)
 
 # CAPTURE ALL PRISPEVKOVE OF ALL ORGS
 
 # Create list with all dicts that aren't chapters - chapters have no prispevkovky
+prispevkovkycount = 0
 ossdicts = []
 for org in ossdicts:
     if org['orgtype'] != 'chapter':
         ossdicts.append(org)
 
 for orgdict in ossdicts:
+    #FIXME: this cycle doesn't return anything
+    if includeprispevkovky != 1: break
     sorgurl = urlbase + orgdict['year'] + urlmidjson_chapter + orgdict['id'] + '?do=loadContributoryOrganizations'
     #print orgurl
     sorgreq = urllib2.Request(orgurl, httpdata, httpheaders_json)
@@ -245,24 +251,54 @@ for orgdict in ossdicts:
             sorgtype = row.find('td', attrs={'headers' : 'semi-cofog'}).a.contents
             sorgdict = {'year' : orgdict['year'], 'id' : sorgICO[0],
                           'type' : 'PO', 'chapternum' : orgdict['chapter'],
-                          'parentorgICO' : orgdict['id'], 'parentorgname' : orgdict['orgname'],
+                          'parentorgICO' : orgdict['id'],
+                          'parentorgname' : orgdict['orgname'],
                           'category' : sorgtype[0],
-                          'orgname' : sorgname[0], 'chaptername' : orgdict['chaptername']}
+                          'orgname' : sorgname[0],
+                          'chaptername' : orgdict['chaptername']}
             orgdicts.append(sorgdict)
+            prispevkovkycount += 1
 
+print('Found ' + str(prispevkovkycount) + ' prispevkovky over ' +
+      str(len(years)) + ' years.')
+print('Number of orgs in list total over all years: ' + str(len(orgdicts)))
 
-
-# SCRAPE ALL VYSLEDOVKY FOR ALL ORGS
+# SCRAPE ALL VYSLEDOVKY FOR ALL ORGS [INCOME/EXPENDITURE STATEMENTS]
+# note budget data is not scraped for all, only for chapters and orgs, not for
+# prispevkovky
 # TODO: SCRAPE VYSLEDOVKY FOR ALL ORGS
 
 tail = '?do=loadIncomeStatement'
 for org in orgdicts:
+    if collectvysledovky != 1: break
     if org['type'] == 'chapter': continue
     if org['type'] == 'OSS': urlmidjson = '/statni-rozpocet/oss-sf/'
     if org['type'] == 'PO': urlmidjson = '/prispevkove-organizace/detail/'
     isurl = urlbase + org['year'] + urlmidjson + org['id'] + tail
+    print isurl
     isreq = urllib2.Request(isurl, httpdata, httpheaders_json)
     ispage = urllib2.urlopen(isreq).read()
     ispagehtml = json.loads(ispage)['snippets']['snippet--incomeStatementSnippet']
     issoup = BeautifulSoup(ispagehtml)
+    if issoup.find('p', attrs={'class' : 'empty-result'}):
+        availability = 'Unavailable'
+        csvrow_availability = [org['year'], org['type'], org['id'], org['chapternum'],
+                               org['chaptername'], org['orgname'], 'Vysledovka', availability]
+        if writecsv == 1: writer_availability.writerow(csvrow_availability)
+        print('No vysledkovka available for ' + org['id'] + ' in ' + org['year'])
+        continue
+#    print(issoup)
+    availability = 'Available'
+    csvrow_availability = [org['year'], org['type'], org['id'], org['chapternum'],
+                           org['chaptername'], org['orgname'], 'Vysledovka', availability]
+    if writecsv == 1: writer_availability.writerow(csvrow_availability)
+    exptab = issoup.find('table', attrs={'id' : 'expenses'}).tbody
+    revtab = issoup.find('table', attrs={'id' : 'revenues'}).tbody
+    # create list of two dicts, marked expenditures and revenues, with data as content
+    vyslrows = [{"type" : "expenditures", "data" : exptab.find_all('tr')},
+                 {"type" : "revenues", "data" : revtab.find_all('tr')}]
+    # iterate through divts - this helps avoid duplication of work as the two 
+    # parts of the statement are structurally identical
+    for vysltype in vyslrows:
+
 
