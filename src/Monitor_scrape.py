@@ -15,8 +15,8 @@ years = ['2010', '2011', '2012']
 writecsv = 1
 collectbudget = 0
 collectvysledovky = 1
-includeprispevkovky = 1
 includeoss = 1
+includeprispevkovky = 0
 
 # SET UP CONSTANT BITS
 
@@ -63,26 +63,30 @@ httpheaders_html = {
 
 # SET UP CSV
 if writecsv == 1:
-    csvout_druhove = "../output/VydajeDruhove" + '_' + filedatestring + '.csv'
-    csvfile = open(csvout_druhove, 'wb')
-    writer_druhove = csv.writer(csvfile, doublequote=True)
+    if collectbudget == 1:
+        csvout_druhove = "../output/VydajeDruhove" + '_' + filedatestring + '.csv'
+        csvfile = open(csvout_druhove, 'wb')
+        writer_druhove = csv.writer(csvfile, doublequote=True)
 
-    csvdictfieldnames_druhove = ['orgyear', 'orgtype', 'orgid', 'orgname',
-                                 'orgchapter',
-                                 'orgchaptername', 'zrizovatel',
-                                 'rowid', 'rowname', 'rowlevel', 'rowparent',
-                                 'rozpocet', 'pozmenach', 'skutecnost']
-    if writecsv == 1: writer_druhove.writerow(csvdictfieldnames_druhove)
+        csvdictfieldnames_druhove = ['orgyear', 'orgtype', 'orgid', 'orgname',
+                                     'orgchapter',
+                                     'orgchaptername', 'zrizovatel',
+                                     'rowid', 'rowname', 'rowlevel', 'rowparent',
+                                     'rozpocet', 'pozmenach', 'skutecnost']
+        writer_druhove.writerow(csvdictfieldnames_druhove)
 
-    csvout_vysledovka = "../output/VydajeVysledovka" + '_' + filedatestring + '.csv'
-    csvfile = open(csvout_vysledovka, 'wb')
-    writer_vysledovka = csv.writer(csvfile, doublequote=True)
+    if collectvysledovky == 1:
+        csvout_vysledovka = "../output/VydajeVysledovka" + '_' + filedatestring + '.csv'
+        csvfile = open(csvout_vysledovka, 'wb')
+        writer_vysledovka = csv.writer(csvfile, doublequote=True)
 
-    csvdictfieldnames_vysledovka = ['orgyear', 'orgtype', 'orgid', 'orgname',
-                                    'orgchapter', 'zrizovatel',
-                                    'rowid', 'rowname', 'rowlevel', 'rowparent',
-                                    'skutecnostLetos', 'skutecnostLoni']
-    if writecsv == 1: writer_vysledovka.writerow(csvdictfieldnames_vysledovka)
+        csvdictfieldnames_vysledovka = ['year', 'orgid', 'orgname', 'chapternum',
+                       'chaptername', 'parentorgICO', 'parentorgname', 'type',
+                       'category', 'vysltype', 'itemcode', 'itemname', 'synaccount',
+                       'rownum',
+                       'beznehlavni', 'beznehospodarska',
+                       'minulehlavni', 'minulehospodarska']
+        writer_vysledovka.writerow(csvdictfieldnames_vysledovka)
 
     csvout_availability = "../output/VydajeAvailability" + '_' + filedatestring + '.csv'
     csvfile = open(csvout_availability, 'wb')
@@ -91,7 +95,7 @@ if writecsv == 1:
     csvdictfieldnames_availability = ['year', 'type', 'id', 'chapter',
                                       'chaptername', 'orgname',
                                       'datatype', 'availability']
-    if writecsv == 1: writer_availability.writerow(csvdictfieldnames_availability)
+    writer_availability.writerow(csvdictfieldnames_availability)
 
 # CAPTURE ALL CHAPTER NUMBERS FOR EACH YEAR
 
@@ -125,7 +129,7 @@ print('Found ' + str(len(orgdicts)) + ' budget chapters over ' +
       str(len(years)) + ' years.')
 
 # CAPTURE ALL SUBORDINATE ORGS FOR EACH CHAPTER
-print('Getting list of organisations')
+if includeoss == 1: print('Getting list of organisations')
 chapterdicts = orgdicts[:]
 for orgdict in chapterdicts:
     if includeoss != 1: break
@@ -225,6 +229,7 @@ for org in orgdicts:
 # Create list with all dicts that aren't chapters - chapters have no prispevkovky
 prispevkovkycount = 0
 ossdicts = []
+if includeprispevkovky == 1: print('Collecting POs')
 for org in ossdicts:
     if org['orgtype'] != 'chapter':
         ossdicts.append(org)
@@ -295,10 +300,29 @@ for org in orgdicts:
     exptab = issoup.find('table', attrs={'id' : 'expenses'}).tbody
     revtab = issoup.find('table', attrs={'id' : 'revenues'}).tbody
     # create list of two dicts, marked expenditures and revenues, with data as content
-    vyslrows = [{"type" : "expenditures", "data" : exptab.find_all('tr')},
+    vysltabs = [{"type" : "expenditures", "data" : exptab.find_all('tr')},
                  {"type" : "revenues", "data" : revtab.find_all('tr')}]
     # iterate through divts - this helps avoid duplication of work as the two 
     # parts of the statement are structurally identical
-    for vysltype in vyslrows:
-
-
+    for vysltab in vysltabs:
+        vysltype = vysltab['type']
+        vyslrows = vysltab['data'].find_all('tr',
+                                            attrs={'tr-class' : 'header'})
+        for row in vyslrows:
+            cells = row.find_all('td')
+            itemcode = cells[1].contents[0]
+            itemname = cells[2].contents[0]
+            synaccount = cells[3].contents[0]
+            rownum = cells[4].contents[0]
+            beznehlavni = cells[5].contents[0]
+            beznehospodarska = cells[5].contents[0]
+            minulehlavni = cells[6].contents[0]
+            minulehospodarska = cells[7].contents[0]
+            csvrow_vysl = [org['year'], org['id'], org['orgname'], org['chapternum'],
+                           org['chaptername'], org['parentorgICO'],
+                           org['parentorgname'], org['type'],
+                           org['category'],
+                           vysltype, itemcode, itemname, synaccount, rownum,
+                           beznehlavni, beznehospodarska,
+                           minulehlavni, minulehospodarska]
+            if writecsv: writer_vysledovka.writerow(csvrow_vysl)
