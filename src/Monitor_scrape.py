@@ -276,9 +276,6 @@ for orgdict in ossdicts:
                           'chaptername' : orgdict['chaptername']}
             orgdicts.append(sorgdict)
             prispevkovkycount += 1
-print('ALL ORGS OVER ALL YEARS')
-for i in orgdicts:
-    print i
 
 print('Found ' + str(prispevkovkycount) + ' prispevkovky over ' +
       str(len(years)) + ' years.')
