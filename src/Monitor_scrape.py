@@ -4,6 +4,7 @@ Created on May 1, 2013
 @author: petrbouchal
 '''
 import urllib2
+import urllib
 import csv
 import json
 from bs4 import BeautifulSoup
@@ -11,16 +12,16 @@ from datetime import datetime
 
 # SELECT YEARS, SCOPE OF DATA AND ORGS, AND STORAGE TYPES
 
-years = ['2012']
-#years = ['2010', '2011', '2012']
+#years = ['2012']
+years = ['2010', '2011', '2012']
 
 writecsv = 1
 
-collectbudget = 0
+collectbudget = 1
 collectvysledovky = 1
 
 includeoss = 1
-includeprispevkovky = 0
+includeprispevkovky = 1
 
 # SET UP CONSTANT BITS
 
@@ -38,8 +39,6 @@ urlbase = 'http://monitor.statnipokladna.cz/'
 
 urlmidjson_chapter = '/statni-rozpocet/kapitola/'
 urlmidjson_ico = '/statni-rozpocet/oss-sf/'
-urltailjson_chapter = '?do=loadChapterOutgoingsBudgetByItems'
-urltailjson_ico = '?do=loadGovernmentDepartmentOutgoingsBudgetByItems'
 
 httpdata = None
 httpheaders_json = {
@@ -47,42 +46,43 @@ httpheaders_json = {
                'Host' : 'monitor.statnipokladna.cz',
                'Connection' : 'keep-alive',
                'Cache-Control' : 'max-age=0',
-               'Accept' : 'application/json, text/javascript, */* ; q=0.01',
-               'Conent-Type' : 'Content-Type:application/x-www-form-urlencoded; charset=UTF-8',
+               'Accept' : 'application/json, text/javascript, */*; q=0.01',
+               'Content-Type' : 'application/x-www-form-urlencoded; charset=UTF-8',
                'Origin' : 'http://monitor.statnipokladna.cz',
-               'Accept-Encoding':'gzip, deflate, sdch',
-               'Accept-Language':'cs, en - US;q=0.8, en;q=0.6, de;q=0.4',
-               'X-Requested-With' : 'XMLHttpRequest'
+               'Accept-Encoding':'gzip,deflate,sdch',
+               'Accept-Language':'cs,en-US;q=0.8,en;q=0.6,de;q=0.4',
+               'X-Requested-With' : 'XMLHttpRequest',
+               "Cookie" : "monitor-radix=C"
                }
 
 httpheaders_html = {
                'Host': 'monitor.statnipokladna.cz',
                'Connection': 'keep-alive',
-               'Cache-Control': 'max-age = 0',
-               'Accept': 'text/html, application/xhtml+xml, application/xml;q=0.9, */* ;q=0.8',
+               'Cache-Control': 'max-age=0',
+               'Accept': 'text/html, application/xhtml+xml, application/xml; q=0.9,*/* ;q=0.8',
                'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_6_8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/27.0.1453.65 Safari/537.36',
-               'Accept-Encoding': 'gzip, deflate, sdch',
-               'Accept-Language': 'cs, en-US;q=0.8, en;q=0.6, de;q=0.4'
+               'Accept-Encoding': 'gzip,deflate,sdch',
+               'Accept-Language': 'cs,en-US;q=0.8,en;q=0.6,de;q=0.4'
               }
 
 # SET UP CSV
 if writecsv == 1:
     if collectbudget == 1:
         csvout_druhove = "../output/VydajeDruhove" + '_' + filedatestring + '.csv'
-        csvfile = open(csvout_druhove, 'wb')
-        writer_druhove = csv.writer(csvfile, doublequote=True)
+        csvfile_druhove = open(csvout_druhove, 'wb')
+        writer_druhove = csv.writer(csvfile_druhove, doublequote=True)
 
         csvdictfieldnames_druhove = ['orgyear', 'orgtype', 'orgid', 'orgname',
                                      'orgchapter',
-                                     'orgchaptername', 'zrizovatel',
+                                     'orgchaptername', 'zrizovatel', 'category',
                                      'rowid', 'rowname', 'rowlevel', 'rowparent',
                                      'rozpocet', 'pozmenach', 'skutecnost']
         writer_druhove.writerow(csvdictfieldnames_druhove)
 
     if collectvysledovky == 1:
         csvout_vysledovka = "../output/VydajeVysledovka" + '_' + filedatestring + '.csv'
-        csvfile = open(csvout_vysledovka, 'wb')
-        writer_vysledovka = csv.writer(csvfile, doublequote=True)
+        csvfile_vysledovka = open(csvout_vysledovka, 'wb')
+        writer_vysledovka = csv.writer(csvfile_vysledovka, doublequote=True)
 
         csvdictfieldnames_vysledovka = ['year', 'orgid', 'orgname', 'chapternum',
                        'chaptername', 'parentorgICO', 'parentorgname', 'type',
@@ -93,8 +93,8 @@ if writecsv == 1:
         writer_vysledovka.writerow(csvdictfieldnames_vysledovka)
 
     csvout_availability = "../output/VydajeAvailability" + '_' + filedatestring + '.csv'
-    csvfile = open(csvout_availability, 'wb')
-    writer_availability = csv.writer(csvfile, doublequote=True)
+    csvfile_availability = open(csvout_availability, 'wb')
+    writer_availability = csv.writer(csvfile_availability, doublequote=True)
 
     csvdictfieldnames_availability = ['year', 'type', 'id', 'chapter',
                                       'chaptername', 'orgname',
@@ -139,7 +139,7 @@ for orgdict in chapterdicts:
     if includeoss != 1: break
     orgurl = (urlbase + orgdict['year'] + urlmidjson_chapter + orgdict['id'] +
               '?do=loadGovernmentDepartments')
-    print orgurl
+    #print orgurl
     orgreq = urllib2.Request(orgurl, httpdata, httpheaders_json)
     orgpage = urllib2.urlopen(orgreq).read()
     orgpagehtml = json.loads(orgpage)['snippets']['snippet--governmentDepartmentsSnippet']
@@ -169,13 +169,17 @@ print('Found ' + str(len(orgdicts)) + ' budget chapters and orgs over ' +
 
 # SCRAPE DRUHOVE CLENENI [BUDGET DATA]
 
+tail_chapter = '?do=loadChapterOutgoingsBudgetByItems'
+tail_ico = '?do=loadGovernmentDepartmentOutgoingsBudgetByItems'
+
 for org in orgdicts:
     if collectbudget != 1: break
     if org['type'] == 'chapter':
-        url = urlbase + org['year'] + urlmidjson_chapter + org['id'] + urltailjson_chapter
+        url = urlbase + org['year'] + urlmidjson_chapter + org['id'] + tail_chapter
     elif org['type'] == 'OSS':
-        url = urlbase + org['year'] + urlmidjson_ico + org['id'] + urltailjson_ico
+        url = urlbase + org['year'] + urlmidjson_ico + org['id'] + tail_ico
     print url
+    httpdata = urllib.urlencode({"ico" : org['id']})
     req = urllib2.Request(url, httpdata, httpheaders_json)
     try:
         datajson = urllib2.urlopen(req)
@@ -188,10 +192,10 @@ for org in orgdicts:
             continue
     datajson = datajson.read()
     data = json.loads(datajson)
-    html = data['snippets']['snippet - -outgoingsBudgetByItemsSnippet']
-    #print(html)
+    html = data['snippets']['snippet--outgoingsBudgetByItemsSnippet']
     soup = BeautifulSoup(html)
-    errorpage = soup.find('p', attrs={'class' : 'empty - result'})
+    #print soup
+    errorpage = soup.find('p', attrs={'class' : 'empty-result'})
     if errorpage != None:
         print org['id'] + ': No budget data for this organisation ' + 'in ' + org['year']
         availability = "Unavailable"
@@ -199,67 +203,72 @@ for org in orgdicts:
                                org['chaptername'], org['orgname'], 'Druhove', availability]
         if writecsv == 1: writer_availability.writerow(csvrow_availability)
         continue
-    table = soup.find('tbody')
+    table = soup.tbody
     rows = table.find_all('tr')
     for row in rows:
         #print row
-        rowid = row['data - tt - id']
+        rowid = row['data-tt-id']
         rowname = row.th.contents[0]
         figures = row.find_all('td')
         if rowid != "0":
             level = row['class'][0]
-            parent = row['data - tt - parent - id']
+            parent = row['data-tt-parent-id']
         else:
             level = '0'
             parent = 'None'
-        #print rowname, level, rowid, parent
         rozpocet = figures[0].contents[0].replace(' ', '')
         pozmenach = figures[1].contents[0].replace(' ', '')
         skutecnost = figures[2].contents[0].replace(' ', '')
-        #print rowname, rozpocet, pozmenach, skutecnost
         csvrow_druhove = [org['year'], org['type'], org['id'], org['orgname'],
                           org['chapternum'], org['chaptername'], org['parentorgICO'],
                           org['parentorgname'],
                           rowid, rowname, level, parent, rozpocet, pozmenach, skutecnost]
         if writecsv == 1:  writer_druhove.writerow(csvrow_druhove)
+        #print csvrow_druhove
 
     availability = 'Available'
     csvrow_availability = [org['year'], org['type'], org['id'], org['chapternum'],
                            org['chaptername'], org['orgname'], 'Druhove', availability]
     if writecsv == 1: writer_availability.writerow(csvrow_availability)
+    #print csvrow_availability
+if writecsv == 1 & collectbudget == 1: csvfile_druhove.close()
 
-# CAPTURE ALL PRISPEVKOVE OF ALL ORGS
+# CAPTURE ALL PRISPEVKOVE ORGs OF ALL ORGS
 
 # Create list with all dicts that aren't chapters - chapters have no prispevkovky
 prispevkovkycount = 0
 ossdicts = []
 if includeprispevkovky == 1: print('Collecting POs')
-for org in ossdicts:
-    if org['orgtype'] != 'chapter':
+for org in orgdicts:
+    if org['type'] != 'chapter':
         ossdicts.append(org)
 
+tail = '?do=loadContributoryOrganizations'
 for orgdict in ossdicts:
     #FIXME: this cycle doesn't return anything
     if includeprispevkovky != 1: break
-    sorgurl = urlbase + orgdict['year'] + urlmidjson_chapter + orgdict['id'] + '?do=loadContributoryOrganizations'
-    #print orgurl
-    sorgreq = urllib2.Request(orgurl, httpdata, httpheaders_json)
-    sorgpage = urllib2.urlopen(orgreq).read()
+    sorgurl = urlbase + orgdict['year'] + urlmidjson_ico + orgdict['id'] + tail
+    print sorgurl
+    httpdata = urllib.urlencode({"ico" : orgdict['id']})
+    sorgreq = urllib2.Request(sorgurl, httpdata, httpheaders_json)
+    sorgpage = urllib2.urlopen(sorgreq).read()
 
-    sorgpagehtml = json.loads(orgpage)['snippets']['snippet--contributoryOrgsSnippet']
-    sorgsoup = BeautifulSoup(orgpagehtml)
-    sorgtable = orgsoup.find('table', attrs={'class' : 'monitor-table clickable-table tablesorter'})
+    sorgpagehtml = json.loads(sorgpage)['snippets']['snippet--contributoryOrgsSnippet']
+    sorgsoup = BeautifulSoup(sorgpagehtml)
+    #print sorgsoup
+    sorgtable = sorgsoup.find('table', attrs={'id' : 'semi-budgetary-org'})
     if sorgtable == None:
         print("No prispevkovky for org " + orgdict['id'])
+        continue
     else:
         sorgbody = sorgtable.tbody
         sorgrows = sorgbody.find_all('tr')
-        for row in orgrows:
+        for row in sorgrows:
             sorgICO = row.find('td', attrs={'headers' : 'semi-ico'}).a.contents
             sorgname = row.find('td', attrs={'headers' : 'semi-name'}).a.contents
             sorgtype = row.find('td', attrs={'headers' : 'semi-cofog'}).a.contents
             sorgdict = {'year' : orgdict['year'], 'id' : sorgICO[0],
-                          'type' : 'PO', 'chapternum' : orgdict['chapter'],
+                          'type' : 'PO', 'chapternum' : orgdict['chapternum'],
                           'parentorgICO' : orgdict['id'],
                           'parentorgname' : orgdict['orgname'],
                           'category' : sorgtype[0],
@@ -267,17 +276,23 @@ for orgdict in ossdicts:
                           'chaptername' : orgdict['chaptername']}
             orgdicts.append(sorgdict)
             prispevkovkycount += 1
+print('ALL ORGS OVER ALL YEARS')
+for i in orgdicts:
+    print i
 
 print('Found ' + str(prispevkovkycount) + ' prispevkovky over ' +
       str(len(years)) + ' years.')
 print('Number of orgs in list total over all years: ' + str(len(orgdicts)))
+
 
 # SCRAPE ALL VYSLEDOVKY FOR ALL ORGS [INCOME/EXPENDITURE STATEMENTS]
 # note budget data is not scraped for all, only for chapters and orgs, not for
 # prispevkovky
 # TODO: SCRAPE VYSLEDOVKY FOR ALL ORGS
 
-tail = '?do=loadIncomeStatement'
+if collectvysledovky == 1:
+    tail = '?do=loadIncomeStatement'
+    print 'Collecting income statements for', len(orgdicts), 'organisations.'
 for org in orgdicts:
     if collectvysledovky != 1: break
     if org['type'] == 'chapter': continue
@@ -285,11 +300,13 @@ for org in orgdicts:
     if org['type'] == 'PO': urlmidjson = '/prispevkove-organizace/detail/'
     isurl = urlbase + org['year'] + urlmidjson + org['id'] + tail
     print isurl
+    httpdata = urllib.urlencode({"ico" : org['id']})
     isreq = urllib2.Request(isurl, httpdata, httpheaders_json)
     ispage = urllib2.urlopen(isreq).read()
     ispagehtml = json.loads(ispage)['snippets']['snippet--incomeStatementSnippet']
     issoup = BeautifulSoup(ispagehtml)
-    if issoup.find('p', attrs={'class' : 'empty-result'}):
+    #print issoup
+    if issoup.find('p', attrs={'class' : 'empty-result'}) != None:
         availability = 'Unavailable'
         csvrow_availability = [org['year'], org['type'], org['id'], org['chapternum'],
                                org['chaptername'], org['orgname'], 'Vysledovka', availability]
@@ -318,10 +335,10 @@ for org in orgdicts:
             itemname = cells[1].contents[0]
             synaccount = cells[2].contents[0]
             rownum = cells[3].contents[0]
-            beznehlavni = cells[4].contents[0]
-            beznehospodarska = cells[5].contents[0]
-            minulehlavni = cells[6].contents[0]
-            minulehospodarska = cells[7].contents[0]
+            beznehlavni = cells[4].contents[0].replace(' ', '')
+            beznehospodarska = cells[5].contents[0].replace(' ', '')
+            minulehlavni = cells[6].contents[0].replace(' ', '')
+            minulehospodarska = cells[7].contents[0].replace(' ', '')
             csvrow_vysl = [org['year'], org['id'], org['orgname'], org['chapternum'],
                            org['chaptername'], org['parentorgICO'],
                            org['parentorgname'], org['type'],
@@ -330,3 +347,6 @@ for org in orgdicts:
                            beznehlavni, beznehospodarska,
                            minulehlavni, minulehospodarska]
             if writecsv == 1: writer_vysledovka.writerow(csvrow_vysl)
+if writecsv == 1:
+    if collectvysledovky == 1: csvfile_vysledovka.close()
+    csvfile_availability.close()

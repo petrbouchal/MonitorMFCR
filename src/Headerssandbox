@@ -1,0 +1,17 @@
+POST /2010/statni-rozpocet/oss-sf/00640841?do=loadGovernmentDepartmentOutgoingsBudgetByItems HTTP/1.1
+Host: monitor.statnipokladna.cz
+Connection: keep-alive
+Content-Length: 12
+Accept: application/json, text/javascript, */*; q=0.01
+Origin: http://monitor.statnipokladna.cz
+X-Requested-With: XMLHttpRequest
+User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_6_8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/27.0.1453.81 Safari/537.36
+Content-Type: application/x-www-form-urlencoded; charset=UTF-8
+Referer: http://monitor.statnipokladna.cz/2010/statni-rozpocet/oss-sf/00640841
+Accept-Encoding: gzip,deflate,sdch
+Accept-Language: cs,en-US;q=0.8,en;q=0.6,de;q=0.4
+Cookie: monitor-radix=C; PHPSESSID=rvoek6a2qeeb0ocoqhi5jm10j1; nette-browser=7ejekjikzk; _ga=1.2.1948078152.1367436778
+
+curl "http://monitor.statnipokladna.cz/2010/statni-rozpocet/oss-sf/00640841?do=loadGovernmentDepartmentOutgoingsBudgetByItems" -H "Cookie: monitor-radix=C; PHPSESSID=rvoek6a2qeeb0ocoqhi5jm10j1; nette-browser=7ejekjikzk; _ga=1.2.1948078152.1367436778" -H "Origin: http://monitor.statnipokladna.cz" -H "Accept-Encoding: gzip,deflate,sdch" -H "Host: monitor.statnipokladna.cz" -H "Accept-Language: cs,en-US;q=0.8,en;q=0.6,de;q=0.4" -H "User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_6_8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/27.0.1453.81 Safari/537.36" -H "Content-Type: application/x-www-form-urlencoded; charset=UTF-8" -H "Accept: application/json, text/javascript, */*; q=0.01" -H "Referer: http://monitor.statnipokladna.cz/2010/statni-rozpocet/oss-sf/00640841" -H "X-Requested-With: XMLHttpRequest" -H "Connection: keep-alive" --data "ico=00640841"
+curl "http://monitor.statnipokladna.cz/2010/statni-rozpocet/oss-sf/00640841?do=loadGovernmentDepartmentOutgoingsBudgetByItems" -H "Cookie: monitor-radix=C" -H "Origin: http://monitor.statnipokladna.cz" -H "Accept-Encoding: gzip,deflate,sdch" -H "Host: monitor.statnipokladna.cz" -H "Accept-Language: cs,en-US;q=0.8,en;q=0.6,de;q=0.4" -H "User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_6_8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/27.0.1453.81 Safari/537.36" -H "Content-Type: application/x-www-form-urlencoded; charset=UTF-8" -H "Accept: application/json, text/javascript, */*; q=0.01" -H "Referer: http://monitor.statnipokladna.cz/2010/statni-rozpocet/oss-sf/00640841" -H "X-Requested-With: XMLHttpRequest" -H "Connection: keep-alive" --data "ico=00640841"
+curl "http://monitor.statnipokladna.cz/2010/statni-rozpocet/oss-sf/00640841?do=loadGovernmentDepartmentOutgoingsBudgetByItems" -H "Origin: http://monitor.statnipokladna.cz" -H "Accept-Encoding: gzip,deflate,sdch" -H "Host: monitor.statnipokladna.cz" -H "Accept-Language: cs,en-US;q=0.8,en;q=0.6,de;q=0.4" -H "User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_6_8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/27.0.1453.81 Safari/537.36" -H "Content-Type: application/x-www-form-urlencoded; charset=UTF-8" -H "Accept: application/json, text/javascript, */*; q=0.01" -H "Referer: http://monitor.statnipokladna.cz/2010/statni-rozpocet/oss-sf/00640841" -H "X-Requested-With: XMLHttpRequest" -H "Connection: keep-alive" --data "ico=00640841"
