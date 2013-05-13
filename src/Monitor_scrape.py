@@ -23,6 +23,8 @@ collectvysledovky = 1
 includeoss = 1
 includeprispevkovky = 1
 
+collectcurrentbudget = 1
+
 # SET UP CONSTANT BITS
 
 now = datetime.now()
@@ -347,3 +349,22 @@ for org in orgdicts:
 if writecsv == 1:
     if collectvysledovky == 1: csvfile_vysledovka.close()
     csvfile_availability.close()
+
+# COLLECT THIS YEAR'S BUDGET(S)
+if collectcurrentbudget != 1:
+    break
+print('Fetching current budget')
+
+urlmidjson_cb = '/letosni-rok'
+tail = '?do=loadClickableOutgoingsByItemsBudget'
+httpdata = None
+cburl = urlbase + org['year'] + urlmidjson_cb + tail
+cbreq = urllib2.Request(cburl, httpdata, httpheaders_json)
+cbpage = urllib2.urlopen(cbreq).read()
+cbpagehtml = json.loads(cbpage)['snippets']['snippet--incomeStatementSnippet']
+soup = BeautifulSoup(cbpagehtml).find(table,
+                                      attrs={'id':'clickable-outgoings-by-items-budget'})
+rows = soup.tbody.find_all('tr')
+cbsoup = BeautifulSoup(cbpagehtml)
+
+
