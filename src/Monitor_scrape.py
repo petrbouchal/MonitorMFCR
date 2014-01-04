@@ -1,11 +1,12 @@
-'''
+"""
 Created on May 1, 2013
 
 @author: petrbouchal
-'''
+"""
 import urllib2
 import urllib
 import csv
+
 import json
 from bs4 import BeautifulSoup
 from datetime import datetime
@@ -352,7 +353,7 @@ if writecsv == 1:
 
 # COLLECT THIS YEAR'S BUDGET(S)
 if collectcurrentbudget != 1:
-    break
+    quit()
 print('Fetching current budget')
 
 urlmidjson_cb = '/letosni-rok'
